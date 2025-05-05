@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
-import { ref, push, onValue, set } from 'firebase/database';
+import { ref, onValue, set } from 'firebase/database';
 import furiaBanner from './assets/furia-banner.png';
 import furiaLogo from './assets/furia-logo.png';
 import { database } from './firebase';
-import InitializeButton from './components/InitializeButton';
+
 import { FiRefreshCw } from 'react-icons/fi';
 
 function App() {
@@ -12,21 +12,22 @@ function App() {
     {
       opponent: "The Mongolz",
       date: "10/05/2025",
-      tournament: "PGL Astana 2025"
+      tournament: "PGL Astana 2025",
+      time: "15:00"
     }
   ]);
   
   const [recentResults, setRecentResults] = useState([
     {
-      result: "The Mongolz 2 - 0 FURIA",
+      result: "The Mongolz 2 - 0 FURIA | PGL Bucharest 2025 - 12-14th",
       date: "09/04/2025"
     },
     {
-      result: "Virtus Pro 2 - 0 FURIA",
+      result: "Virtus Pro 2 - 0 FURIA | PGL Bucharest 2025 - 12-14th",
       date: "08/04/2025"
     },
     {
-      result: "Complexity 2 - 0 FURIA",
+      result: "Complexity 2 - 0 FURIA | PGL Bucharest 2025 - 12-14th",
       date: "07/04/2025"
     }
   ]);
@@ -72,6 +73,7 @@ function App() {
   const [userId, setUserId] = useState(`user_${Math.floor(Math.random() * 1000000)}`);
   const [userPoints, setUserPoints] = useState(0);
   const [welcomeShown, setWelcomeShown] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -83,21 +85,6 @@ function App() {
   }, [messages]);
 
   useEffect(() => {
-    if (!welcomeShown) {
-      setTimeout(() => {
-        receiveMessage("Olá, fanático da FURIA! 🖤💚 Bem-vindo à experiência oficial de fãs da FURIA Esports!");
-      }, 500);
-
-      setTimeout(() => {
-        receiveMessage("Eu sou o FURIAbot, seu assistente pessoal para tudo relacionado ao time de CS2 da FURIA. Como posso ajudar hoje?");
-      }, 1500);
-
-      setTimeout(() => {
-        receiveMessage("Você pode me perguntar sobre:\n- Próximas partidas\n- Resultados recentes\n- Informações dos jogadores\n- Notícias do time\n- Participar de quiz e desafios");
-      }, 2500);
-      setWelcomeShown(true);
-    }
-
     const userPointsRef = ref(database, `users/${userId}/points`);
     onValue(userPointsRef, (snapshot) => {
       const points = snapshot.val() || 0;
@@ -108,7 +95,25 @@ function App() {
     set(ref(database, `users/${userId}/created_at`), new Date().toISOString());
     set(ref(database, `users/${userId}/last_login`), new Date().toISOString());
 
-  }, [userId, welcomeShown]);
+    if (!welcomeShown) {
+      showWelcomeMessage();
+      setWelcomeShown(true);
+    }
+  }, [userId]);
+
+  const showWelcomeMessage = () => {
+    setTimeout(() => {
+      receiveMessage("Olá, fanático da FURIA! 🖤💚 Bem-vindo à experiência oficial de fãs da FURIA Esports!");
+    }, 500);
+
+    setTimeout(() => {
+      receiveMessage("Eu sou o FURIAbot, seu assistente pessoal para tudo relacionado ao time de CS2 da FURIA. Como posso ajudar hoje?");
+    }, 1500);
+
+    setTimeout(() => {
+      receiveMessage("Você pode me perguntar sobre:\n- Próximas partidas\n- Resultados recentes\n- Informações dos jogadores\n- Participar de quiz e desafios");
+    }, 2500);
+  };
 
   const quizQuestions = [
     {
@@ -146,7 +151,16 @@ function App() {
     }
   ];
 
+  const promptNextQuestion = () => {
+    if (!isProcessing && !quizActive) {
+      setTimeout(() => {
+        receiveMessage("O que mais você gostaria de saber sobre a FURIA?");
+      }, 500);
+    }
+  };
+
   const processUserInput = (text) => {
+    setIsProcessing(true);
     const lowerText = text.toLowerCase().trim();
 
     if (quizActive) {
@@ -157,17 +171,26 @@ function App() {
     if (lowerText.includes("próxima") && (lowerText.includes("partida") || lowerText.includes("jogo") || lowerText.includes("match"))) {
       let response = "📅 **Próximas partidas da FURIA:**\n\n";
       nextMatches.forEach(match => {
-        response += `🔥 FURIA vs ${match.opponent}\n📆 ${match.date} às ${match.time}\n🏆 ${match.tournament}\n\n`;
+        response += `🔥 FURIA vs ${match.opponent}\n📆 ${match.date} às ${match.time || "TBD"}\n🏆 ${match.tournament}\n\n`;
       });
       receiveMessage(response);
+      setTimeout(() => {
+        setIsProcessing(false);
+        promptNextQuestion();
+      }, 1000);
       return;
     }
+    
     if (lowerText.includes("resultado") || (lowerText.includes("último") && lowerText.includes("jogo"))) {
       let response = "📊 **Resultados recentes:**\n\n";
       recentResults.forEach(result => {
         response += `⚔️ ${result.result}\n📆 ${result.date}\n\n`;
       });
       receiveMessage(response);
+      setTimeout(() => {
+        setIsProcessing(false);
+        promptNextQuestion();
+      }, 1000);
       return;
     }
 
@@ -178,6 +201,10 @@ function App() {
         if (player) {
           const response = `👤 **${playerName.toUpperCase()}**\n\nNome: ${player.name}\nFunção: ${player.role}\nEstatísticas: ${player.stats}\n\nCuriosidade: ${player.funFact}`;
           receiveMessage(response);
+          setTimeout(() => {
+            setIsProcessing(false);
+            promptNextQuestion();
+          }, 1000);
           return;
         }
       }
@@ -186,6 +213,9 @@ function App() {
     if (lowerText.includes("jogadores") || lowerText.includes("time") || lowerText.includes("lineup")) {
       const response = "👥 **Lineup atual da FURIA CS2:**\n\n- kscerato (Kaike Cerato)\n- yuurih (Yuri Santos)\n- fallen (Gabriel Toledo)\n- molodoy (Danil Golubenko)\n- yekindar (Mareks Gaļinskis)\n\n Sobre qual jogador você quer saber mais?";
       receiveMessage(response);
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 1000);
       return;
     }
 
@@ -193,18 +223,31 @@ function App() {
       startQuiz();
       return;
     }
+    
     if (lowerText.includes("ponto") || lowerText.includes("score") || lowerText.includes("pontuação")) {
       receiveMessage(`🏆 Você tem **${userPoints} pontos** na sua conta de fã da FURIA!\n\nParticipe de quizzes e desafios para ganhar mais pontos e subir no ranking.`);
+      setTimeout(() => {
+        setIsProcessing(false);
+        promptNextQuestion();
+      }, 1000);
       return;
     }
 
     if (lowerText.includes("furia") || lowerText.includes("sobre o time") || lowerText.includes("história")) {
       const response = "🖤💚 **FURIA Esports** é uma organização brasileira de esports fundada em 2017. A equipe de CS2 da FURIA é conhecida por seu estilo de jogo agressivo e pela dedicação dos jogadores. A FURIA se destaca como uma das melhores equipes da América Latina e conquistou reconhecimento mundial, especialmente após chegar às semifinais do ESL Pro League em 2024.";
       receiveMessage(response);
+      setTimeout(() => {
+        setIsProcessing(false);
+        promptNextQuestion();
+      }, 1000);
       return;
     }
 
     receiveMessage("Não entendi completamente sua pergunta. Você pode me perguntar sobre próximas partidas, resultados recentes, informações dos jogadores, ou iniciar um quiz sobre a FURIA!");
+    setTimeout(() => {
+      setIsProcessing(false);
+      promptNextQuestion();
+    }, 1000);
   };
 
   const startQuiz = () => {
@@ -212,7 +255,11 @@ function App() {
     setCurrentQuestion(0);
     receiveMessage("🎮 **Quiz da FURIA!** Responda corretamente e ganhe pontos!");
     receiveMessage("Você pode responder com:\n- Letra (a, b, c, d)\n- Número (1, 2, 3, 4)\n- Nome do jogador (para perguntas sobre jogadores)");
-    askQuestion(0);
+    
+    setTimeout(() => {
+      askQuestion(0);
+      setIsProcessing(false);
+    }, 1000);
   };
 
   const askQuestion = (index) => {
@@ -259,30 +306,39 @@ function App() {
         receiveMessage(`❌ Resposta incorreta. A resposta correta era ${currentQ.correctAnswer.toUpperCase()}) ${currentQ.options[currentQ.correctAnswer]}`);
       }
       
-      setCurrentQuestion(currentQuestion + 1);
-      setTimeout(() => askQuestion(currentQuestion + 1), 1500);
+      const nextQuestionIndex = currentQuestion + 1;
+      setCurrentQuestion(nextQuestionIndex);
+      
+      setTimeout(() => {
+        if (nextQuestionIndex < quizQuestions.length) {
+          askQuestion(nextQuestionIndex);
+        } else {
+          endQuiz();
+        }
+      }, 1500);
     } else {
       receiveMessage("Por favor, responda com:\n- Letra (a, b, c, d)\n- Número (1, 2, 3, 4)\n- Nome da opção correta");
+      setIsProcessing(false);
     }
   };
   
   const endQuiz = () => {
     setQuizActive(false);
     receiveMessage(`🏁 Quiz concluído! Seu total de pontos agora é: ${userPoints}`);
+    
     setTimeout(() => {
       receiveMessage("O que mais você gostaria de saber sobre a FURIA? Você pode perguntar sobre:");
       receiveMessage("- Próximas partidas\n- Resultados recentes\n- Informações dos jogadores\n- Notícias do time\n- Outro quiz");
+      setIsProcessing(false);
     }, 1000);
   };
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (input.trim() === "") return;
+    if (input.trim() === "" || isProcessing) return;
 
     setMessages([...messages, { text: input, isUser: true }]);
-    
     processUserInput(input);
-    
     setInput("");
   };
 
@@ -292,27 +348,17 @@ function App() {
 
   const resetChat = () => {
     setMessages([]);
-    setWelcomeShown(false);
     setQuizActive(false);
     setCurrentQuestion(0);
-    
+    setIsProcessing(true);
     setTimeout(() => {
-      receiveMessage("Olá, fanático da FURIA! 🖤💚 Bem-vindo à experiência oficial de fãs da FURIA Esports!");
+      showWelcomeMessage();
+      setTimeout(() => setIsProcessing(false), 2600);
     }, 300);
-
-    setTimeout(() => {
-      receiveMessage("Eu sou o FURIAbot, seu assistente pessoal para tudo relacionado ao time de CS2 da FURIA. Como posso ajudar hoje?");
-    }, 800);
-
-    setTimeout(() => {
-      receiveMessage("Você pode me perguntar sobre:\n- Próximas partidas\n- Resultados recentes\n- Informações dos jogadores\n- Notícias do time\n- Participar de quiz e desafios");
-      setWelcomeShown(true);
-    }, 1300);
   };
 
   return (
     <div className="app">
-      <InitializeButton />
       <header className="header">
         <img src={furiaLogo} alt="FURIA Logo" className="logo" />
         <h1>FURIA Fan Experience</h1>
@@ -337,11 +383,7 @@ function App() {
           <div ref={messagesEndRef} />
         </div>
         
-        <div className="input-container"> {}
-          <button className="reset-button" onClick={resetChat} title="Resetar conversa">
-            <FiRefreshCw size={20} />
-          </button>
-          
+        <div className="input-container">
           <form className="input-form" onSubmit={sendMessage}>
             <input
               type="text"
@@ -349,12 +391,29 @@ function App() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Pergunte algo sobre a FURIA..."
               className="message-input"
+              disabled={isProcessing}
             />
-            <button type="submit" className="send-button">Enviar</button>
+            <button 
+              type="submit" 
+              className="send-button"
+              disabled={isProcessing}
+            >
+              Enviar
+            </button>
+            <button 
+              type="button"
+              className="reset-button" 
+              onClick={resetChat} 
+              title="Resetar conversa"
+              disabled={isProcessing}
+            >
+              <FiRefreshCw size={20} />
+            </button>
           </form>
         </div>
       </div>
     </div>
-  )};
+  );
+}
 
 export default App;

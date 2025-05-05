@@ -53,14 +53,14 @@
 
 .banner-container {
   padding: 0 15px;
-  margin-top: 10px;
+  margin-top: 20px;
 }
 
 .banner {
   width: 100%;
   border-radius: 10px;
   object-fit: cover;
-  max-height: 150px;
+  max-height: 330px;
 }
 
 .chat-container {
@@ -170,7 +170,6 @@
   transform: scale(0.98);
 }
 
-/* Responsividade */
 @media (max-width: 600px) {
   .header h1 {
     font-size: 1.2rem;
@@ -218,30 +217,67 @@
 }
 
 .input-form {
-  flex: 1;
   display: flex;
-  gap: 10px;
-}
-
-.reset-button {
-  background: #333;
-  border: none;
-  color: white;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.reset-button:hover {
-  background: #444;
-  transform: rotate(180deg);
+  width: 100%;
+  gap: 8px;
 }
 
 .message-input {
-  flex: 1;
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
 }
+
+.send-button {
+  background-color: #1DB954;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.reset-button {
+  background-color: #444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-button:hover, .reset-button:hover {
+  opacity: 0.9;
+}
+
+.send-button:disabled, .reset-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .input-form {
+    flex-wrap: wrap;
+  }
+  
+  .message-input {
+    width: 100%;
+    margin-bottom: 8px;
+    flex-basis: 100%;
+  }
+  
+  .send-button, .reset-button {
+    flex-basis: auto;
+  }
+  
+  .send-button {
+    flex-grow: 1;
+  }
+}
+
